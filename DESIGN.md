@@ -1,8 +1,17 @@
 # Design Document
 
-[TOC]
+<!-- vim-markdown-toc GFM -->
 
-The goal of this document is to explain the design behind aGame, a modular,
+* [Goals](#goals)
+* [Why Rust?](#why-rust)
+  * [Rust is a very fast, compiled language](#rust-is-a-very-fast-compiled-language)
+  * [Rust emphasizes code and type safety](#rust-emphasizes-code-and-type-safety)
+* [What are modules?](#what-are-modules)
+  * [How do they work?](#how-do-they-work)
+
+<!-- vim-markdown-toc -->
+
+The goal of this document is to explain the design behind Latte, a modular,
 multithreaded game engine.
 
 ## Goals
@@ -33,7 +42,7 @@ and multithreaded programming.
 
 ## What are modules?
 
-In the scope of aGame, a module is a piece of code that may run in a separate
+In the scope of Latte, a module is a piece of code that may run in a separate
 thread tries to solve a particular aspect for the game. Examples of modules are:
 
 * Rendering module
