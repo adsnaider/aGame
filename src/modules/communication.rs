@@ -1,37 +1,31 @@
 use std::sync::mpsc;
-use std::sync::Arc;
-use std::sync::Mutex;
+use std::time;
 
-pub struct Sender<M> {
-    sender: mpsc::Sender<M>,
-}
-pub struct Receiver<M> {
-    receiver: Arc<Mutex<mpsc::Receiver<M>>>,
+pub struct Event<T> {
+    send_time: (time::SystemTime, time::Instant),
+    data: T,
 }
 
-pub struct Channel<M> {
-    sender: Sender<M>,
-    receiver: Receiver<M>,
+pub struct EventSender<T> {
+    sender: mpsc::Sender<Event<T>>,
 }
 
-impl<M> Clone for Receiver<M> {
-    fn clone(&self) -> Self {
-        let rx = Arc::clone(&self.receiver);
-        Receiver { receiver: rx }
+pub struct EventReceiver<T> {
+    receiver: mpsc::Receiver<Event<T>>,
+}
+
+impl<T> EventSender<T> {
+    fn send(&self, message: T) -> Result<(), mpsc::SendError<Event<T>>> {
+        let event = Event {
+            send_time: (time::SystemTime::now(), time::Instant::now()),
+            data: message,
+        };
+        self.sender.send(event)
     }
 }
 
-impl<M> Channel<M> {
-    pub fn new() -> Channel<M> {
-        let (tx, rx) = mpsc::channel();
-        let rx = Arc::new(Mutex::new(rx));
-        Channel {
-            sender: Sender { sender: tx },
-            receiver: Receiver { receiver: rx },
-        }
-    }
-
-    pub fn receiver(&self) -> &Receiver<M> {
-        &self.receiver
+impl<T> EventReceiver<T> {
+    fn recv(&self) -> Result<Event<T>, mpsc::RecvError> {
+        self.receiver.recv()
     }
 }

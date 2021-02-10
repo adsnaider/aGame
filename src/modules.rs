@@ -1,43 +1,41 @@
+use std::thread;
+
 pub mod communication;
 
-use std::collections::HashMap;
-
-pub struct ModuleManager<M> {
-    modules: HashMap<String, ModuleInfo<M>>,
+pub trait Entry: Send {
+    fn entry(&self);
 }
 
-struct ModuleInfo<M> {
-    module: Box<dyn Module<Message = M>>,
-    channel: communication::Channel<M>,
+pub struct ModuleManager {
+    modules: Vec<Box<dyn Entry>>,
+    threads: Vec<std::thread::JoinHandle<()>>,
 }
 
-pub trait Module {
-    type Message;
-    fn entry(&self, sender: communication::Sender<Self::Message>);
-    fn name(&self) -> String;
-}
-
-impl<M> ModuleManager<M> {
-    pub fn new() -> ModuleManager<M> {
+impl ModuleManager {
+    pub fn new() -> ModuleManager {
         ModuleManager {
-            modules: HashMap::new(),
+            modules: Vec::new(),
+            threads: Vec::new(),
         }
     }
-    pub fn register_module(&mut self, module: impl Module<Message = M> + 'static) {
-        let channel = communication::Channel::new();
-        let info = ModuleInfo {
-            module: Box::new(module),
-            channel,
-        };
-        self.modules.insert(info.module.name(), info);
+
+    pub fn register_module(&mut self, module: Box<dyn Entry>) {
+        self.modules.push(module);
     }
 
-    pub fn observe(&self, module: &str) -> Option<communication::Receiver<M>> {
-        if let Some(info) = self.modules.get(module) {
-            return Some(info.channel.receiver().clone());
+    pub fn start(&mut self) {
+        while !self.modules.is_empty() {
+            if let Some(module) = self.modules.pop() {
+                self.threads.push(thread::spawn(move || {
+                    module.entry();
+                }));
+            }
         }
-        None
     }
 
-    pub fn start() {}
+    pub fn join(self) {
+        for t in self.threads {
+            t.join().unwrap();
+        }
+    }
 }
